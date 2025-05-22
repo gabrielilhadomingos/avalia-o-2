@@ -1,11 +1,8 @@
 <ID>
-
 </ID>
 
 <Data e Hora da req>
-
 </Data>
 
 <Nome>
-
 </Nome>
