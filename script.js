@@ -1,35 +1,79 @@
-import express from 'express';
-import { v4 as uuidv4 } from 'uuid';
-import fs from 'fs';
+import { randomUUID } from "crypto";
+import express from "express";
+import fs from "fs";
 
 const server = express();
 const PORT = 8000;
 
-app.get('/generate-id', (req, res) => {
-    const randomId = uuidv4();
-    res.send({ id: randomId });
-});
-
-app.listen(8000, () => {
-    console.log('servidor rodando na porta 8000');
-});
-
 server.use(express.json());
 
-server.post('/logs', (req, res) => {
-    const { nome } = req.body;
+server.post("/logs/registros", (request, response) => {
+  const body = request.body;
 
-    if (!nome) {
-        return res.status(400).send({ error: 'Nome do aluno é obrigatório' });
+  const user = {
+    id: randomUUID(),
+    dateRequested: new Date(),
+    name: body.name,
+  };
+
+  if (!body.name) {
+    return response.status(400).send("Nome é obrigatorio");
+  }
+
+  fs.readFile("logs.txt", "utf-8", (err, data) => {
+    if (err) {
+      console.error("Erro ao ler arquivo:", err);
+      return response.status(500).send("Internal Server Error");
     }
 
-    const id = uuidv4();
-    const logMessage = `Aluno: ${nome}, ID: ${id}\n`;
+    const logs = data ? JSON.parse(data) : [];
+    logs.push(user);
 
-    fs.appendFile('logs.txt', logMessage, (err) => {
-        if (err) {
-            return res.status(500).send({ error: 'Erro ao salvar o log' });
-        }
-        res.send({ message: 'Log registrado com sucesso', id });
+    fs.writeFile("logs.txt", JSON.stringify(logs, null, 2), (err) => {
+      if (err) {
+        return response.status(500).send("Internal Server Error");
+      }
+
+      return response.status(201).json(user);
     });
+  });
+});
+
+server.post("/logs", (request, response) => {
+  const body = request.body;
+
+  if (!body.name) {
+    return response.status(400).send("Nome é obrigatorio");
+  }
+
+  const mensagem = {
+    id: randomUUID(),
+    mensagem: "",
+  };
+
+  fs.readFile("logs.txt", "utf-8", (err, data) => {
+    if (err) {
+      console.error("Erro ao ler arquivo:", err);
+      return response.status(500).json("Internal Server Error");
+    }
+
+    const logs = data ? JSON.parse(data) : [];
+    mensagem.mensagem = "Log criado com sucesso!"
+    logs.push(mensagem);
+
+    fs.writeFile("logs.txt", JSON.stringify(logs, null, 2), (err) => {
+      if (err) {
+        console.error("Erro ao escrever arquivo:", err);
+        return response.status(500).send("Internal Server Error");
+      }
+
+      return response
+        .status(200)
+        .json({ id: mensagem.id, mensagem: mensagem.mensagem });
+    });
+  });
+});
+
+server.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
 });
